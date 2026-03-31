@@ -42,6 +42,7 @@ class WebDisplay:
             'type': 'init' if is_init else 'update',
             'score': state.score,
             'pacman': pacman_pos,
+            'is_testing': self.delay > 0
         }
         
         if is_init:

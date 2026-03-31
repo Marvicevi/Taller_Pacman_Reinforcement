@@ -75,6 +75,9 @@ def process_output(process, sid):
             json_str = line[len('__WEB_DISPLAY__:'):]
             try:
                 data = json.loads(json_str)
+                if data.get('type') == 'waiting_for_retest':
+                    socketio.emit('training_complete', {}, to=sid)
+                    continue
                 socketio.emit('game_update', data, to=sid)
             except json.JSONDecodeError:
                 pass
@@ -84,6 +87,17 @@ def process_output(process, sid):
         eventlet.sleep(0.001)
 
     process.stdout.close()
+    if process.stdin:
+        process.stdin.close()
+
+@socketio.on('retest')
+def handle_retest():
+    sid = request.sid
+    if sid in active_processes:
+        p = active_processes[sid]
+        if p.poll() is None and p.stdin:
+            p.stdin.write("retest\n")
+            p.stdin.flush()
 
 @socketio.on('start_training')
 def handle_start_training(data):
@@ -134,6 +148,7 @@ def handle_start_training(data):
         cmd,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
+        stdin=subprocess.PIPE,
         text=True,
         bufsize=1 # Line buffered
     )

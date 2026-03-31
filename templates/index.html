@@ -40,8 +40,8 @@
             class="flex flex-col md:flex-row items-center justify-between bg-white border-t-4 border-pastelPrimary rounded-t-xl p-6 shadow-md">
             <div class="flex items-center space-x-6">
                 <div>
-                    <h1 class="text-3xl font-bold text-pastelText tracking-wide">Taller de Inteligencia Artificial:
-                        Pacman</h1>
+                    <h1 class="text-2xl md:text-3xl font-bold text-pastelText tracking-wide">Taller de Aprendizaje por
+                        Refuerzo (Reinforcement Learning)</h1>
                     <div
                         class="mt-2 flex flex-col md:flex-row md:items-center space-y-1 md:space-y-0 md:space-x-4 text-sm text-pastelMuted font-medium">
                         <span class="flex items-center">
@@ -150,10 +150,16 @@
                         </p>
                     </div>
 
-                    <button type="submit" id="startBtn"
-                        class="w-full mt-2 bg-gradient-to-r from-pastelPrimary to-pastelSecondary hover:opacity-90 text-white font-bold py-3.5 px-4 rounded-xl shadow-lg transition duration-300 transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pastelPrimary">
-                        INICIAR ENTRENAMIENTO
-                    </button>
+                    <div class="flex space-x-3 mt-4">
+                        <button type="submit" id="startBtn"
+                            class="w-full bg-gradient-to-r from-pastelPrimary to-pastelSecondary hover:opacity-90 text-white font-bold py-3.5 px-4 rounded-xl shadow-lg transition duration-300 transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pastelPrimary">
+                            INICIAR ENTRENAMIENTO
+                        </button>
+                        <button type="button" id="retestBtn"
+                            class="hidden w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3.5 px-4 rounded-xl shadow-lg transition duration-300 transform hover:-translate-y-0.5 focus:outline-none">
+                            VOLVER A VER (Mismo Ent.)
+                        </button>
+                    </div>
                 </form>
 
                 <div id="statusBox"
@@ -213,6 +219,7 @@
             startBtn.disabled = true;
             startBtn.innerText = "ENTRENANDO...";
             startBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            document.getElementById('retestBtn').classList.add('hidden');
             statusBox.classList.remove('hidden');
             statusText.innerText = `Visualizando ${episodes} ciclos de entrenamiento a máxima velocidad... ¡Observa sus exploraciones!`;
 
@@ -221,38 +228,84 @@
             ctx.fillRect(0, 0, canvas.width, canvas.height);
         });
 
-        socket.on('game_update', (data) => {
-            if (data.type === 'finish') {
-                startBtn.disabled = false;
-                startBtn.innerText = "NUEVO ENTRENAMIENTO";
-                startBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-                statusText.innerText = "¡Partida finalizada! Pacman ha demostrado lo que aprendió.";
-                return;
-            }
+        document.getElementById('retestBtn').addEventListener('click', () => {
+            socket.emit('retest');
 
+            // Set UI to testing mode immediately
+            statusText.innerText = "🚀 Examen Final (Velocidad Normal): Observa el conocimiento adquirido.";
+            statusText.parentElement.classList.replace('bg-indigo-50', 'bg-emerald-50');
+            statusText.parentElement.classList.replace('border-indigo-100', 'border-emerald-200');
+            statusText.previousElementSibling.innerHTML = '<span class="text-emerald-700">✓ Fase de Prueba Activa:</span>';
+
+            document.getElementById('retestBtn').disabled = true;
+            document.getElementById('retestBtn').classList.add('opacity-50', 'cursor-not-allowed');
+            startBtn.disabled = true;
+            startBtn.classList.add('opacity-50', 'cursor-not-allowed');
+
+            // Clear canvas while waiting
+            ctx.fillStyle = '#111111';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        });
+
+        socket.on('game_update', function (data) {
             if (data.type === 'init') {
                 gameState = data;
-                // Calculate ideal cell size to fit canvas, wait, logic fits in 600x400
-                // For layout 20x20, we want it to fit the 600x400
+
+                if (data.is_testing) {
+                    statusText.innerText = "🚀 Examen Final (Velocidad Normal): Observa el conocimiento adquirido.";
+                    statusText.parentElement.classList.replace('bg-indigo-50', 'bg-emerald-50');
+                    statusText.parentElement.classList.replace('border-indigo-100', 'border-emerald-200');
+                    statusText.previousElementSibling.innerHTML = '<span class="text-emerald-700">✓ Fase de Prueba Activa:</span>';
+                } else {
+                    statusText.parentElement.classList.replace('bg-emerald-50', 'bg-indigo-50');
+                    statusText.parentElement.classList.replace('border-emerald-200', 'border-indigo-100');
+                    statusText.previousElementSibling.innerHTML = `<svg class="w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Estado de Entrenamiento:`;
+                }
+
                 const maxW = 800;
                 const maxH = 600;
                 CELL_SIZE = Math.min(Math.floor(maxW / data.width), Math.floor(maxH / data.height));
                 canvas.width = data.width * CELL_SIZE;
                 canvas.height = data.height * CELL_SIZE;
 
-                statusText.innerText = "Entrenamiento completado. ¡Mira jugar a Pacman!";
-            } else {
-                if (!gameState) return;
-                gameState.score = data.score;
-                gameState.pacman = data.pacman;
-                gameState.pacmanDir = data.pacmanDir;
-                gameState.food = data.food;
-                gameState.capsules = data.capsules;
-                gameState.ghostStates = data.ghostStates;
+                drawGame();
+                return;
             }
 
-            scoreEl.innerText = Math.round(data.score);
-            drawGame();
+            if (data.type === 'update') {
+                if (gameState) {
+                    gameState.score = data.score;
+                    gameState.pacman = data.pacman;
+                    if (data.food) gameState.food = data.food;
+                    if (data.capsules) gameState.capsules = data.capsules;
+                    if (data.pacmanDir) gameState.pacmanDir = data.pacmanDir;
+                    if (data.ghostStates) gameState.ghostStates = data.ghostStates;
+
+                    scoreEl.innerText = Math.round(data.score);
+                    requestAnimationFrame(drawGame);
+                }
+                return;
+            }
+
+            if (data.type === 'finish') {
+                // Done with one game episode
+                return;
+            }
+        });
+
+        socket.on('training_complete', function () {
+            statusText.innerText = "¡Entrenamiento Finalizado! Puedes intentar otro modelo, o volver a ver la prueba final.";
+            statusText.parentElement.classList.replace('bg-emerald-50', 'bg-indigo-50');
+            statusText.parentElement.classList.replace('border-emerald-200', 'border-indigo-100');
+            statusText.previousElementSibling.innerHTML = '<span class="text-indigo-800">Resultado Final:</span>';
+
+            startBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            startBtn.disabled = false;
+            startBtn.innerHTML = "NUEVO ENTRENAMIENTO (Reiniciar)";
+
+            const retestBtn = document.getElementById('retestBtn');
+            retestBtn.classList.remove('hidden', 'opacity-50', 'cursor-not-allowed');
+            retestBtn.disabled = false;
         });
 
         const COLORS = {
@@ -274,8 +327,6 @@
 
             // Draw Walls
             if (gameState.walls) {
-                // Determine layout height for Y inversion (Pygame is [0,0] bottom-left, Canvas is top-left)
-                // Wait, CS188 internal coordinates have [0,0] at bottom-left! 
                 const h = gameState.height;
 
                 ctx.fillStyle = COLORS.wall;

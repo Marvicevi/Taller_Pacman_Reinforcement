@@ -673,6 +673,22 @@ def runGames( layout, pacman, ghosts, display, numGames, record, numTraining = 0
         print('Win Rate:      %d/%d (%.2f)' % (wins.count(True), len(wins), winRate))
         print('Record:       ', ', '.join([ ['Loss', 'Win'][int(w)] for w in wins]))
 
+    if getattr(display, 'is_web', False):
+        import sys, json
+        while True:
+            print('__WEB_DISPLAY__:' + json.dumps({'type': 'waiting_for_retest'}))
+            sys.stdout.flush()
+            line = sys.stdin.readline().strip()
+            if line == 'retest':
+                gameDisplay = display
+                gameDisplay.delay = 1.0 / gameDisplay.fps if getattr(gameDisplay, 'fps', 0) > 0 else 0
+                rules.quiet = False
+                # Re-run a test game!
+                game = rules.newGame(layout, pacman, ghosts, gameDisplay, False, catchExceptions)
+                game.run()
+            else:
+                break
+
     return games
 
 if __name__ == '__main__':
