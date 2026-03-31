@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Control - Pacman Taller</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        pastelBg: '#f8fafc',
+                        pastelCard: '#ffffff',
+                        pastelPrimary: '#6366f1',
+                        pastelSecondary: '#a855f7',
+                        pastelText: '#334155',
+                        pastelMuted: '#94a3b8'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+
+<body class="min-h-screen bg-pastelBg font-sans flex flex-col items-center justify-center py-10 px-4">
+
+    <div class="max-w-3xl w-full bg-pastelCard rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+
+        <div class="bg-gradient-to-r from-pastelPrimary to-pastelSecondary p-8 text-center border-b border-indigo-200">
+            <h1 class="text-3xl font-bold text-white tracking-wide drop-shadow-sm">Panel Docente: Data Scientist Marco
+                Cedeño</h1>
+            <p class="text-indigo-100 font-medium mt-2">Comparte esta pantalla con tus alumnos</p>
+        </div>
+
+        <div class="p-10 flex flex-col items-center bg-white">
+
+            <h2 class="text-2xl font-bold text-pastelText mb-3">Escanea para Unirte al Taller</h2>
+            <p class="text-pastelMuted mb-8 max-w-lg text-center leading-relaxed">Conecta tu dispositivo y escanea este
+                código. Si falla tu cámara, escribe manualmente la URL de abajo.</p>
+
+            <div class="bg-gray-50 p-6 rounded-2xl shadow-inner border border-gray-100 mb-8 flex justify-center items-center"
+                style="min-height: 280px; min-width: 280px;">
+                <div id="qrcode"></div>
+            </div>
+
+            <div class="bg-indigo-50 w-full rounded-xl p-5 text-center border border-indigo-100 mb-10 shadow-sm">
+                <p
+                    class="text-sm font-semibold text-pastelPrimary uppercase tracking-widest mb-2 flex items-center justify-center">
+                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd"
+                            d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z"
+                            clip-rule="evenodd"></path>
+                    </svg>
+                    URL de Acceso Directo:
+                </p>
+                <div class="text-2xl md:text-3xl font-mono font-bold text-pastelText break-all">{{ url }}</div>
+            </div>
+
+            <div class="w-full pt-8 border-t border-gray-100 text-center">
+                <p class="text-sm text-pastelMuted mb-6 flex justify-center items-center">Estado actual de la sesión:
+                    {% if accepting %}
+                    <span id="status-span"
+                        class="ml-2 font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-4 py-1.5 rounded-full shadow-sm">RECIBIENDO
+                        ALUMNOS</span>
+                    {% else %}
+                    <span id="status-span"
+                        class="ml-2 font-bold text-rose-600 bg-rose-50 border border-rose-200 px-4 py-1.5 rounded-full shadow-sm">CERRADO</span>
+                    {% endif %}
+                </p>
+
+                <button id="lockBtn"
+                    class="bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white font-bold py-3.5 px-8 rounded-xl shadow-lg transition duration-300 transform hover:-translate-y-0.5 {% if not accepting %}hidden{% endif %}">
+                    Terminar Charla (Bloquear Nuevos Ingresos)
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // Generate QR Code automatically
+        new QRCode(document.getElementById("qrcode"), {
+            text: "{{ url }}",
+            width: 250,
+            height: 250,
+            colorDark: "#334155",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.H
+        });
+
+        document.getElementById('lockBtn').addEventListener('click', () => {
+            if (confirm('¿Estás seguro de bloquear el ingreso de nuevos alumnos? Ya nadie podrá acceder al Home.')) {
+                fetch('/admin/stop', { method: 'POST' })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.status === 'stopped') {
+                            document.getElementById('lockBtn').classList.add('hidden');
+                            const st = document.getElementById('status-span');
+                            st.classList.replace('text-green-600', 'text-red-600');
+                            st.classList.replace('bg-green-100', 'bg-red-100');
+                            st.innerText = 'CERRADO';
+                            alert('¡La sesión ha sido bloqueada correctamente!');
+                        }
+                    });
+            }
+        });
+    </script>
+</body>
+
+</html>

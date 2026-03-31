@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pacman IA - Marco Cedeño</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        pastelBg: '#f8fafc',
+                        pastelCard: '#ffffff',
+                        pastelPrimary: '#6366f1', // Indigo pastel
+                        pastelSecondary: '#a855f7', // Purple pastel
+                        pastelText: '#334155',
+                        pastelMuted: '#94a3b8'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #f8fafc;
+            color: #334155;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen font-sans flex flex-col items-center py-10">
+
+    <div class="max-w-6xl w-full px-4">
+
+        <!-- Header -->
+        <div
+            class="flex flex-col md:flex-row items-center justify-between bg-white border-t-4 border-pastelPrimary rounded-t-xl p-6 shadow-md">
+            <div class="flex items-center space-x-6">
+                <div>
+                    <h1 class="text-3xl font-bold text-pastelText tracking-wide">Taller de Inteligencia Artificial:
+                        Pacman</h1>
+                    <div
+                        class="mt-2 flex flex-col md:flex-row md:items-center space-y-1 md:space-y-0 md:space-x-4 text-sm text-pastelMuted font-medium">
+                        <span class="flex items-center">
+                            <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"></path>
+                            </svg>
+                            Data Scientist Marco Cedeño
+                        </span>
+                        <a href="mailto:marcocede@gmail.com"
+                            class="flex items-center hover:text-pastelPrimary transition">
+                            <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"></path>
+                                <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"></path>
+                            </svg>
+                            marcocede@gmail.com
+                        </a>
+                        <a href="https://github.com/Marvicevi" target="_blank"
+                            class="flex items-center hover:text-pastelPrimary transition">
+                            <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 24 24">
+                                <path
+                                    d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
+                            </svg>
+                            GitHub
+                        </a>
+                        <a href="https://www.linkedin.com/in/marcocede" target="_blank"
+                            class="flex items-center hover:text-pastelPrimary transition">
+                            <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 24 24">
+                                <path
+                                    d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" />
+                            </svg>
+                            LinkedIn
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-4 md:mt-0">
+                <div class="bg-pastelBg px-6 py-3 rounded-xl border border-gray-200 text-center shadow-inner">
+                    <p class="text-xs text-pastelMuted uppercase tracking-widest mb-1 font-bold">Puntaje</p>
+                    <p id="scoreEl" class="text-3xl font-mono text-pastelPrimary font-bold">0</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex flex-col lg:flex-row bg-white rounded-b-xl shadow-lg border border-gray-100 overflow-hidden">
+
+            <!-- Sidebar Controls -->
+            <div class="w-full lg:w-1/3 p-6 bg-gray-50 border-r border-gray-200">
+                <h2 class="text-xl font-bold text-pastelText mb-6 pb-2 border-b border-gray-200 flex items-center">
+                    <svg class="w-5 h-5 mr-2 text-pastelSecondary" fill="none" stroke="currentColor"
+                        viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z">
+                        </path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                    Ajustes de RL
+                </h2>
+
+                <form id="control-form" class="space-y-5">
+                    <div>
+                        <label class="block text-sm font-semibold text-pastelText mb-1">Nombre del Estudiante</label>
+                        <input type="text" id="studentName" required
+                            class="w-full bg-white border border-gray-300 rounded-lg py-2.5 px-4 text-gray-800 focus:outline-none focus:ring-2 focus:ring-pastelPrimary focus:border-transparent transition shadow-sm placeholder-gray-400"
+                            placeholder="Ej: Ana Pérez">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-pastelText mb-1">Tablero (Layout)</label>
+                        <select id="layout"
+                            class="w-full bg-white border border-gray-300 rounded-lg py-2.5 px-4 text-gray-800 focus:outline-none focus:ring-2 focus:ring-pastelPrimary focus:border-transparent transition shadow-sm mb-1">
+                            <option value="smallGrid">Small Grid (Pequeño)</option>
+                            <option value="mediumGrid">Medium Grid (Mediano)</option>
+                            <option value="smallClassic">Small Classic</option>
+                            <option value="mediumClassic">Medium Classic</option>
+                        </select>
+                        <p class="text-[11px] text-gray-500">El tamaño del laberinto. Laberintos más grandes toman más
+                            tiempo en recorrer.</p>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-semibold text-pastelText mb-1">Aprendizaje (Alpha)</label>
+                            <input type="number" id="alpha" value="0.2" step="0.1" min="0" max="1"
+                                class="w-full bg-white border border-gray-300 rounded-lg py-2.5 px-4 text-gray-800 focus:outline-none focus:ring-2 focus:ring-pastelPrimary focus:border-transparent transition shadow-sm mb-1">
+                            <p class="text-[10px] leading-tight text-gray-500">Qué tan rápido asimila lo nuevo versus
+                                cuánto recuerda del pasado (0 a 1).</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-pastelText mb-1">Exploración
+                                (Epsilon)</label>
+                            <input type="number" id="epsilon" value="0.05" step="0.01" min="0" max="1"
+                                class="w-full bg-white border border-gray-300 rounded-lg py-2.5 px-4 text-gray-800 focus:outline-none focus:ring-2 focus:ring-pastelPrimary focus:border-transparent transition shadow-sm mb-1">
+                            <p class="text-[10px] leading-tight text-gray-500">Probabilidad de ignorar su experiencia y
+                                tomar un camino al azar.</p>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-pastelText mb-1">Episodios de
+                            Entrenamiento</label>
+                        <input type="number" id="episodes" value="1000" min="10" max="5000"
+                            class="w-full bg-white border border-gray-300 rounded-lg py-2.5 px-4 text-gray-800 focus:outline-none focus:ring-2 focus:ring-pastelPrimary focus:border-transparent transition shadow-sm">
+                        <p class="text-[11px] text-gray-500 mt-1">Más ciclos = Mayor aprendizaje, pero tarda más tiempo.
+                        </p>
+                    </div>
+
+                    <button type="submit" id="startBtn"
+                        class="w-full mt-2 bg-gradient-to-r from-pastelPrimary to-pastelSecondary hover:opacity-90 text-white font-bold py-3.5 px-4 rounded-xl shadow-lg transition duration-300 transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pastelPrimary">
+                        INICIAR ENTRENAMIENTO
+                    </button>
+                </form>
+
+                <div id="statusBox"
+                    class="mt-6 p-4 rounded-xl bg-indigo-50 border border-indigo-100 text-sm hidden shadow-inner">
+                    <p class="font-bold text-indigo-800 mb-1 flex items-center">
+                        <svg class="w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
+                            </circle>
+                            <path class="opacity-75" fill="currentColor"
+                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                            </path>
+                        </svg>
+                        Estado de Entrenamiento:
+                    </p>
+                    <p id="statusText" class="text-indigo-900/80">Entrenando a máxima velocidad. ¡Observa sus
+                        exploraciones en el Canvas!</p>
+                </div>
+            </div>
+
+            <!-- Canvas Area -->
+            <div
+                class="w-full lg:w-2/3 p-6 flex flex-col items-center justify-center bg-[#1e293b] overflow-hidden relative min-h-[400px]">
+                <canvas id="gameCanvas" width="600" height="400"
+                    class="rounded-xl border border-gray-700 shadow-2xl max-w-full h-auto bg-black"></canvas>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreEl = document.getElementById('scoreEl');
+        const statusBox = document.getElementById('statusBox');
+        const statusText = document.getElementById('statusText');
+        const startBtn = document.getElementById('startBtn');
+
+        let gameState = null;
+        let CELL_SIZE = 20;
+
+        document.getElementById('control-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+
+            const layout = document.getElementById('layout').value;
+            const alpha = document.getElementById('alpha').value;
+            const epsilon = document.getElementById('epsilon').value;
+            const episodes = document.getElementById('episodes').value;
+
+            socket.emit('start_training', {
+                layout: layout,
+                alpha: alpha,
+                epsilon: epsilon,
+                episodes: episodes
+            });
+
+            startBtn.disabled = true;
+            startBtn.innerText = "ENTRENANDO...";
+            startBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            statusBox.classList.remove('hidden');
+            statusText.innerText = `Visualizando ${episodes} ciclos de entrenamiento a máxima velocidad... ¡Observa sus exploraciones!`;
+
+            // clear canvas
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        });
+
+        socket.on('game_update', (data) => {
+            if (data.type === 'finish') {
+                startBtn.disabled = false;
+                startBtn.innerText = "NUEVO ENTRENAMIENTO";
+                startBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                statusText.innerText = "¡Partida finalizada! Pacman ha demostrado lo que aprendió.";
+                return;
+            }
+
+            if (data.type === 'init') {
+                gameState = data;
+                // Calculate ideal cell size to fit canvas, wait, logic fits in 600x400
+                // For layout 20x20, we want it to fit the 600x400
+                const maxW = 800;
+                const maxH = 600;
+                CELL_SIZE = Math.min(Math.floor(maxW / data.width), Math.floor(maxH / data.height));
+                canvas.width = data.width * CELL_SIZE;
+                canvas.height = data.height * CELL_SIZE;
+
+                statusText.innerText = "Entrenamiento completado. ¡Mira jugar a Pacman!";
+            } else {
+                if (!gameState) return;
+                gameState.score = data.score;
+                gameState.pacman = data.pacman;
+                gameState.pacmanDir = data.pacmanDir;
+                gameState.food = data.food;
+                gameState.capsules = data.capsules;
+                gameState.ghostStates = data.ghostStates;
+            }
+
+            scoreEl.innerText = Math.round(data.score);
+            drawGame();
+        });
+
+        const COLORS = {
+            wall: '#002A54',     // USS Blue
+            wallBorder: '#00A9E0', // USS Light Blue
+            food: '#ffffff',
+            capsule: '#CE8E00',  // USS Gold
+            pacman: '#FFFF00',
+            ghosts: ['#FF0000', '#FFB8FF', '#00FFFF', '#FFB852'],
+            scaredGhost: '#FFFFFF' // Changed to white for scared
+        };
+
+        function drawGame() {
+            if (!gameState) return;
+
+            // Clear
+            ctx.fillStyle = '#111111'; // Very dark background for game
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw Walls
+            if (gameState.walls) {
+                // Determine layout height for Y inversion (Pygame is [0,0] bottom-left, Canvas is top-left)
+                // Wait, CS188 internal coordinates have [0,0] at bottom-left! 
+                const h = gameState.height;
+
+                ctx.fillStyle = COLORS.wall;
+                ctx.strokeStyle = COLORS.wallBorder;
+                ctx.lineWidth = 2;
+                gameState.walls.forEach(w => {
+                    const cx = w[0] * CELL_SIZE;
+                    const cy = (h - 1 - w[1]) * CELL_SIZE; // Invert Y
+
+                    ctx.beginPath();
+                    ctx.roundRect(cx, cy, CELL_SIZE, CELL_SIZE, 4);
+                    ctx.fill();
+                    ctx.stroke();
+                });
+
+                // Draw Food
+                ctx.fillStyle = COLORS.food;
+                gameState.food.forEach(f => {
+                    const cx = f[0] * CELL_SIZE + CELL_SIZE / 2;
+                    const cy = (h - 1 - f[1]) * CELL_SIZE + CELL_SIZE / 2;
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, CELL_SIZE * 0.15, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+
+                // Draw Capsules
+                ctx.fillStyle = COLORS.capsule;
+                gameState.capsules.forEach(c => {
+                    const cx = c[0] * CELL_SIZE + CELL_SIZE / 2;
+                    const cy = (h - 1 - c[1]) * CELL_SIZE + CELL_SIZE / 2;
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, CELL_SIZE * 0.35, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+
+                // Draw Pacman
+                if (gameState.pacman) {
+                    const px = gameState.pacman[0] * CELL_SIZE + CELL_SIZE / 2;
+                    const py = (h - 1 - gameState.pacman[1]) * CELL_SIZE + CELL_SIZE / 2;
+
+                    ctx.fillStyle = COLORS.pacman;
+                    ctx.beginPath();
+
+                    // Simple mouth logic based on direction
+                    let angle = 0;
+                    if (gameState.pacmanDir === "South") angle = Math.PI / 2;
+                    else if (gameState.pacmanDir === "West") angle = Math.PI;
+                    else if (gameState.pacmanDir === "North") angle = 3 * Math.PI / 2;
+                    // Ease the mouth
+                    const mouthAngle = 0.2 * Math.PI;
+
+                    ctx.arc(px, py, CELL_SIZE * 0.4, angle + mouthAngle, angle - mouthAngle + 2 * Math.PI);
+                    ctx.lineTo(px, py);
+                    ctx.fill();
+                }
+
+                // Draw Ghosts
+                if (gameState.ghostStates) {
+                    gameState.ghostStates.forEach((g, idx) => {
+                        const gx = g.pos[0] * CELL_SIZE + CELL_SIZE / 2;
+                        const gy = (h - 1 - g.pos[1]) * CELL_SIZE + CELL_SIZE / 2;
+
+                        ctx.fillStyle = g.scared ? COLORS.scaredGhost : COLORS.ghosts[idx % COLORS.ghosts.length];
+
+                        // Ghost shape (semi-circle top, rect bottom)
+                        ctx.beginPath();
+                        ctx.arc(gx, gy, CELL_SIZE * 0.4, Math.PI, 0);
+                        ctx.lineTo(gx + CELL_SIZE * 0.4, gy + CELL_SIZE * 0.4);
+
+                        // Wavy bottom
+                        ctx.lineTo(gx + CELL_SIZE * 0.2, gy + CELL_SIZE * 0.3);
+                        ctx.lineTo(gx, gy + CELL_SIZE * 0.4);
+                        ctx.lineTo(gx - CELL_SIZE * 0.2, gy + CELL_SIZE * 0.3);
+                        ctx.lineTo(gx - CELL_SIZE * 0.4, gy + CELL_SIZE * 0.4);
+                        ctx.closePath();
+                        ctx.fill();
+
+                        // Eyes
+                        if (!g.scared) {
+                            ctx.fillStyle = 'white';
+                            ctx.beginPath(); ctx.arc(gx - CELL_SIZE * 0.15, gy - CELL_SIZE * 0.1, CELL_SIZE * 0.1, 0, Math.PI * 2); ctx.fill();
+                            ctx.beginPath(); ctx.arc(gx + CELL_SIZE * 0.15, gy - CELL_SIZE * 0.1, CELL_SIZE * 0.1, 0, Math.PI * 2); ctx.fill();
+                            ctx.fillStyle = 'blue';
+                            ctx.beginPath(); ctx.arc(gx - CELL_SIZE * 0.15, gy - CELL_SIZE * 0.1, CELL_SIZE * 0.05, 0, Math.PI * 2); ctx.fill();
+                            ctx.beginPath(); ctx.arc(gx + CELL_SIZE * 0.15, gy - CELL_SIZE * 0.1, CELL_SIZE * 0.05, 0, Math.PI * 2); ctx.fill();
+                        }
+                    });
+                }
+            }
+        }
+    </script>
+</body>
+
+</html>
