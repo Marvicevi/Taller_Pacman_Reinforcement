@@ -75,6 +75,10 @@
                     class="bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white font-bold py-3.5 px-8 rounded-xl shadow-lg transition duration-300 transform hover:-translate-y-0.5 {% if not accepting %}hidden{% endif %}">
                     Terminar Charla (Bloquear Nuevos Ingresos)
                 </button>
+                <button id="unlockBtn"
+                    class="bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white font-bold py-3.5 px-8 rounded-xl shadow-lg transition duration-300 transform hover:-translate-y-0.5 {% if accepting %}hidden{% endif %}">
+                    Abrir Charla (Permitir Nuevos Ingresos)
+                </button>
             </div>
 
         </div>
@@ -98,11 +102,32 @@
                     .then(data => {
                         if (data.status === 'stopped') {
                             document.getElementById('lockBtn').classList.add('hidden');
+                            document.getElementById('unlockBtn').classList.remove('hidden');
                             const st = document.getElementById('status-span');
-                            st.classList.replace('text-green-600', 'text-red-600');
-                            st.classList.replace('bg-green-100', 'bg-red-100');
+                            st.classList.replace('text-emerald-600', 'text-rose-600');
+                            st.classList.replace('bg-emerald-50', 'bg-rose-50');
+                            st.classList.replace('border-emerald-200', 'border-rose-200');
                             st.innerText = 'CERRADO';
                             alert('¡La sesión ha sido bloqueada correctamente!');
+                        }
+                    });
+            }
+        });
+
+        document.getElementById('unlockBtn').addEventListener('click', () => {
+            if (confirm('¿Estás seguro de abrir el ingreso de nuevos alumnos? Podrán acceder al Home nuevamente.')) {
+                fetch('/admin/start', { method: 'POST' })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.status === 'started') {
+                            document.getElementById('unlockBtn').classList.add('hidden');
+                            document.getElementById('lockBtn').classList.remove('hidden');
+                            const st = document.getElementById('status-span');
+                            st.classList.replace('text-rose-600', 'text-emerald-600');
+                            st.classList.replace('bg-rose-50', 'bg-emerald-50');
+                            st.classList.replace('border-rose-200', 'border-emerald-200');
+                            st.innerText = 'RECIBIENDO ALUMNOS';
+                            alert('¡La sesión ha sido reabierta correctamente!');
                         }
                     });
             }

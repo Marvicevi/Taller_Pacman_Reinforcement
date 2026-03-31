@@ -51,6 +51,12 @@ def stop_connections():
     ACCEPTING_CONNECTIONS = False
     return jsonify({"status": "stopped"})
 
+@app.route('/admin/start', methods=['POST'])
+def start_connections():
+    global ACCEPTING_CONNECTIONS
+    ACCEPTING_CONNECTIONS = True
+    return jsonify({"status": "started"})
+
 @socketio.on('connect')
 def handle_connect():
     if not ACCEPTING_CONNECTIONS:
